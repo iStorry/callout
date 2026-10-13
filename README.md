@@ -137,3 +137,7 @@ Versions below 1.0 are titled *early access*. To check a release build without p
 | `tests/Callout.Core.Tests` | Unit tests for the core |
 | `installer/Callout.iss` | Inno Setup installer script |
 | `scripts/publish.sh` | Builds the portable zips |
+
+## License
+
+[MIT](LICENSE). Third-party components and their licenses are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

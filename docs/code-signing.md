@@ -8,8 +8,8 @@ steps; they switch on by themselves once the repository variable below exists.
 
 Apply for free open-source signing at https://signpath.org/apply with the repository
 `https://github.com/iStorry/callout`. SignPath Foundation reviews the project. Their conditions
-include an OSI-approved license (add a `LICENSE` file before applying) and the code signing
-policy section that is already in the README.
+include an OSI-approved license (the repository is MIT-licensed) and the code signing policy
+section that is already in the README.
 
 ## 2. Configure SignPath (after approval)
 

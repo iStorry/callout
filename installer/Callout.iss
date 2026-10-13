@@ -38,6 +38,7 @@ AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}/issues
 AppUpdatesURL={#AppUrl}/releases
 VersionInfoVersion={#AppVersion}
+LicenseFile={#SourceDir}\LICENSE.txt
 ; Per-user install into %LocalAppData%\Programs: no administrator prompt.
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
