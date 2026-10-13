@@ -72,6 +72,25 @@ The first start downloads the chosen model (~540 MB for Balanced) to `%LocalAppD
 - **Bounded memory:** if translation falls behind, stale lines are dropped. Chat history is capped at 300 lines. The non-concurrent GC means no background GC thread.
 - **Fast start:** ReadyToRun-compiled, so startup doesn't spend CPU on JIT.
 
+## Privacy
+
+Audio never leaves your PC: capture, speech detection and translation all run locally. Callout's only network
+traffic is downloading the speech models from [Hugging Face](https://huggingface.co/sandrohanea/whisper.net) the
+first time you start a quality level. Nothing is uploaded, and there is no telemetry.
+
+## Code signing policy
+
+Signing is being set up with [SignPath Foundation](https://signpath.org); until it's active, releases are unsigned.
+Once active:
+
+- Release binaries are built and signed only by this repository's GitHub Actions
+  ([release workflow](.github/workflows/release.yml)) from tagged commits. No release is signed from a developer machine.
+- Only binaries built from this repository's source are signed (`Callout.exe`, `Callout.dll`, `Callout.Core.dll`,
+  and the installers). Bundled runtime and library files keep their original publishers' signatures.
+- Committers and reviewers: [@iStorry](https://github.com/iStorry). Release approver: [@iStorry](https://github.com/iStorry).
+
+Setup steps for maintainers are in [docs/code-signing.md](docs/code-signing.md).
+
 ## Requirements
 
 | Build | Runs on | Translation runs on |

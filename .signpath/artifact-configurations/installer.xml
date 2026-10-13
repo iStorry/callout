@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "installer": paste into SignPath under
+  Project "callout" → Artifact configurations → slug "installer".
+  Each signing request contains exactly one installer, for x64 or ARM64.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file-set>
+      <include path="Callout-Setup-x64.exe" min-matches="0" max-matches="1" />
+      <include path="Callout-Setup-arm64.exe" min-matches="0" max-matches="1" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

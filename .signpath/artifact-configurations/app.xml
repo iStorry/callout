@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "app": paste into SignPath under
+  Project "callout" → Artifact configurations → slug "app".
+  Signs only the binaries built from this repository. Runtime and library DLLs are
+  already signed by their publishers (or are third-party) and are left untouched.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Callout.exe">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="Callout.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="Callout.Core.dll">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Builds self-contained Callout packages for every supported Windows architecture.
-# Usage: scripts/publish.sh [version]   e.g. scripts/publish.sh 0.1.0
+# Builds self-contained Callout packages: a folder and a portable zip per Windows architecture.
+# Usage: scripts/publish.sh [version] [runtime-id...]
+#   scripts/publish.sh                    all architectures, version from the project file
+#   scripts/publish.sh 0.2.0 win-x64      one architecture, stamped 0.2.0
 set -euo pipefail
 
-readonly ARCHITECTURES=(win-x64 win-arm64)
 readonly ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 readonly OUT="$ROOT/artifacts"
 readonly VERSION="${1:-}"
+if (($# > 1)); then
+  readonly ARCHITECTURES=("${@:2}")
+else
+  readonly ARCHITECTURES=(win-x64 win-arm64)
+fi
 
 rm -rf "$OUT"
 for rid in "${ARCHITECTURES[@]}"; do

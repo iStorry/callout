@@ -3,6 +3,10 @@ name: Release
 # Push a tag like v0.2.0 to publish a release with installers and portable zips for x64 and ARM64.
 # Run it manually (Actions → Release → Run workflow) for a dry run: everything is built and
 # uploaded as workflow artifacts, but no release is created.
+#
+# Code signing through SignPath turns on when the repository variable SIGNPATH_ORGANIZATION_ID
+# is set (plus the SIGNPATH_API_TOKEN secret); see docs/code-signing.md. Without it, releases
+# are built unsigned.
 on:
   push:
     tags: ['v*.*.*']
@@ -10,15 +14,19 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 env:
   # Tag builds use the tag's version; manual dry runs get a throwaway one.
   # Not named VERSION: MSBuild reads environment variables as properties, case-insensitively,
   # so VERSION=v0.2.0 would silently become an invalid <Version> for every project.
   RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.{0}', github.run_number) }}
+  SIGNING_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+  SIGNPATH_PROJECT_SLUG: callout
+  SIGNPATH_SIGNING_POLICY_SLUG: release-signing
 
 jobs:
-  package:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -27,20 +35,57 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Test
-        run: dotnet test -c Release
+      - run: dotnet test -c Release
 
-      - name: Package
-        run: ./scripts/publish.sh "${RELEASE_VERSION#v}"
+  # Publishes the app and signs Callout's own binaries, so both the portable zip and the
+  # installed app carry the signature.
+  app:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v7
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/setup-dotnet@v6
         with:
-          name: portable
-          path: artifacts/*.zip
+          dotnet-version: 10.0.x
+
+      - name: Publish
+        run: ./scripts/publish.sh "${RELEASE_VERSION#v}" "win-${{ matrix.arch }}"
+
+      - name: Upload for signing
+        id: unsigned
+        if: env.SIGNING_ENABLED == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-app-${{ matrix.arch }}
+          path: artifacts/Callout-win-${{ matrix.arch }}/
           if-no-files-found: error
 
-  installer:
-    needs: package
+      - name: Sign Callout binaries
+        if: env.SIGNING_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          output-artifact-directory: signed-app
+
+      - name: Upload app
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-${{ matrix.arch }}
+          path: ${{ env.SIGNING_ENABLED == 'true' && 'signed-app/' || format('artifacts/Callout-win-{0}/', matrix.arch) }}
+          if-no-files-found: error
+
+  # Zips the (signed) app for the portable download, builds the installer from it, then signs the installer.
+  package:
+    needs: app
     runs-on: windows-latest
     strategy:
       matrix:
@@ -50,8 +95,14 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: portable
-          path: portable
+          name: app-${{ matrix.arch }}
+          path: app
+
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Compress-Archive -Path app\* -DestinationPath "release\Callout-win-${{ matrix.arch }}.zip"
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -60,7 +111,6 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:RELEASE_VERSION.TrimStart('v')
-          Expand-Archive "portable/Callout-win-${{ matrix.arch }}.zip" -DestinationPath app
           $iscc = Get-ChildItem "$env:ProgramFiles\Inno Setup*\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
             Select-Object -First 1
           if (-not $iscc) { throw "ISCC.exe not found after installing Inno Setup" }
@@ -69,19 +119,47 @@ jobs:
             installer\Callout.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Upload installer for signing
+        id: unsigned
+        if: env.SIGNING_ENABLED == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-setup-${{ matrix.arch }}
+          path: setup/
+          if-no-files-found: error
+
+      - name: Sign installer
+        if: env.SIGNING_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          output-artifact-directory: signed-setup
+
+      - name: Collect installer
+        shell: pwsh
+        run: |
+          $source = if ($env:SIGNING_ENABLED -eq 'true') { 'signed-setup' } else { 'setup' }
+          Copy-Item "$source\Callout-Setup-${{ matrix.arch }}.exe" release\
+
       - uses: actions/upload-artifact@v7
         with:
-          name: setup-${{ matrix.arch }}
-          path: setup/*.exe
+          name: release-${{ matrix.arch }}
+          path: release/
           if-no-files-found: error
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: installer
+    needs: package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
         with:
+          pattern: release-*
           path: release
           merge-multiple: true
 
