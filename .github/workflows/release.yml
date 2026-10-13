@@ -13,7 +13,9 @@ permissions:
 
 env:
   # Tag builds use the tag's version; manual dry runs get a throwaway one.
-  VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.{0}', github.run_number) }}
+  # Not named VERSION: MSBuild reads environment variables as properties, case-insensitively,
+  # so VERSION=v0.2.0 would silently become an invalid <Version> for every project.
+  RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.{0}', github.run_number) }}
 
 jobs:
   package:
@@ -29,7 +31,7 @@ jobs:
         run: dotnet test -c Release
 
       - name: Package
-        run: ./scripts/publish.sh "${VERSION#v}"
+        run: ./scripts/publish.sh "${RELEASE_VERSION#v}"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -57,7 +59,7 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
-          $version = $env:VERSION.TrimStart('v')
+          $version = $env:RELEASE_VERSION.TrimStart('v')
           Expand-Archive "portable/Callout-win-${{ matrix.arch }}.zip" -DestinationPath app
           $iscc = Get-ChildItem "$env:ProgramFiles\Inno Setup*\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
             Select-Object -First 1
