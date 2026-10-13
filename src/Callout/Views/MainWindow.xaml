@@ -173,7 +173,7 @@
         <Border Margin="0,16,0,0" Padding="12,10" CornerRadius="8" Background="{StaticResource SurfaceBrush}">
             <TextBlock Style="{StaticResource CaptionText}">
                 <Run Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Text="Tip:" />
-                <Run Text="“Valorant (game audio only)” works out of the box. For the best accuracy, install VB-Cable and set Valorant's Voice Chat output to “CABLE Input”, so gunfire never reaches the translator. For the overlay, use Windowed Fullscreen." />
+                <Run Text="start your game, press refresh, and pick it under “App: …” to hear only that game. For the best accuracy, install VB-Cable and set the game's voice chat output to “CABLE Input”, so gunfire never reaches the translator. For the overlay, use windowed or borderless fullscreen." />
             </TextBlock>
         </Border>
     </StackPanel>

@@ -13,7 +13,7 @@ namespace Callout;
 
 public partial class App : Application
 {
-    // Left edge, a little below the minimap, clear of the kill feed and scoreboard.
+    // Left edge, partway down: clear of the corners where most games put minimaps, kill feeds and scores.
     private const double DefaultOverlayLeft = 24;
     private const double DefaultOverlayTopFraction = 0.4;
 

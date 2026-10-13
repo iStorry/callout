@@ -1,3 +1,4 @@
+using Callout.Core.Audio;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -189,7 +190,7 @@ internal sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void LoadDevices(string? sourceId, string? playbackId)
     {
-        Sources = AudioEndpointCatalog.ListSources();
+        Sources = AudioEndpointCatalog.ListSources(sourceId);
         PlaybackDevices = AudioEndpointCatalog.ListPlaybackDevices();
         SelectedSource = AudioEndpointCatalog.PickSource(Sources, sourceId);
         SelectedPlaybackDevice = AudioEndpointCatalog.PickPlayback(PlaybackDevices, playbackId);
@@ -199,7 +200,7 @@ internal sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (SelectedSource is not { } source)
         {
-            Status = "Pick where Valorant voice chat comes from.";
+            Status = "Pick where your game's voice chat comes from.";
             return;
         }
 

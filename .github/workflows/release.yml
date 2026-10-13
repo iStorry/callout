@@ -1,15 +1,22 @@
 name: Release
 
-# Push a tag like v0.1.0 to publish a release with Windows x64 and ARM64 zips.
+# Push a tag like v0.2.0 to publish a release with installers and portable zips for x64 and ARM64.
+# Run it manually (Actions → Release → Run workflow) for a dry run: everything is built and
+# uploaded as workflow artifacts, but no release is created.
 on:
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  # Tag builds use the tag's version; manual dry runs get a throwaway one.
+  VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.{0}', github.run_number) }}
+
 jobs:
-  release:
+  package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -22,7 +29,59 @@ jobs:
         run: dotnet test -c Release
 
       - name: Package
-        run: ./scripts/publish.sh "${GITHUB_REF_NAME#v}"
+        run: ./scripts/publish.sh "${VERSION#v}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: portable
+          path: artifacts/*.zip
+          if-no-files-found: error
+
+  installer:
+    needs: package
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: portable
+          path: portable
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = $env:VERSION.TrimStart('v')
+          Expand-Archive "portable/Callout-win-${{ matrix.arch }}.zip" -DestinationPath app
+          $iscc = Get-ChildItem "$env:ProgramFiles\Inno Setup*\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found after installing Inno Setup" }
+          & $iscc.FullName `
+            "/DAppVersion=$version" "/DArch=${{ matrix.arch }}" "/DSourceDir=$PWD\app" "/DOutputDir=$PWD\setup" `
+            installer\Callout.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: setup-${{ matrix.arch }}
+          path: setup/*.exe
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
 
       # Pre-1.0 releases are early access. They are still marked "latest" so the
       # stable /releases/latest/download/<asset> links always serve the newest build.
@@ -34,9 +93,8 @@ jobs:
           if [[ "$GITHUB_REF_NAME" == v0.* ]]; then
             title="$title (early access)"
           fi
-          gh release create "$GITHUB_REF_NAME" \
-            artifacts/Callout-win-x64.zip \
-            artifacts/Callout-win-arm64.zip \
+          gh release create "$GITHUB_REF_NAME" release/* \
+            --repo "$GITHUB_REPOSITORY" \
             --title "$title" \
             --generate-notes \
             --latest

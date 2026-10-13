@@ -1,3 +1,4 @@
+using Callout.Core.Audio;
 using Callout.Core.Speech;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -52,7 +53,7 @@ internal sealed class VoiceChatCapture : IDisposable
         _recorder.RecordingStopped += OnRecordingStopped;
     }
 
-    /// <exception cref="GameNotRunningException">The source is the game's own audio and the game is not running.</exception>
+    /// <exception cref="AppNotRunningException">The source is a single app and that app is not running.</exception>
     public static async Task<VoiceChatCapture> CreateAsync(AudioSource source, string? playbackDeviceId, SpeechSamplesHandler onSpeechSamples)
     {
         using var enumerator = new MMDeviceEnumerator();
@@ -79,7 +80,12 @@ internal sealed class VoiceChatCapture : IDisposable
                             "Capturing a single app needs Windows 10 version 2004 or newer. Pick \"Everything playing on…\" or VB-Cable instead.");
                     }
 
-                    builder.WithProcessLoopback(GameProcess.FindId(source.Id), ProcessLoopbackMode.IncludeTargetProcessTree)
+                    if (!AudioSource.TryGetAppProcessName(source.Id, out var processName))
+                    {
+                        throw new ArgumentException($"Not an app source id: {source.Id}", nameof(source));
+                    }
+
+                    builder.WithProcessLoopback(AppAudioSessions.FindProcessId(processName), ProcessLoopbackMode.IncludeTargetProcessTree)
                         .WithFormat(AppLoopbackFormat);
                     break;
                 default:

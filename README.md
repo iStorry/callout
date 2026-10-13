@@ -1,23 +1,28 @@
 # Callout
 
-Translates Valorant voice chat from any language into English, live, in a chat window or an overlay on top of the game.
+Translates in-game voice chat from any language into English, live, for any game: Valorant, CS2, Apex, Fortnite, or anything else that plays voice through Windows. Lines appear in a chat window or an overlay on top of the game.
 Everything runs locally on your GPU. No account, no API key, no cost.
 
 ## Download
 
-Grab the latest build. These links always point to the newest release:
+These links always point to the newest release:
 
-- **Windows x64** (most gaming PCs): [Callout-win-x64.zip](https://github.com/iStorry/callout/releases/latest/download/Callout-win-x64.zip)
-- **Windows on ARM**: [Callout-win-arm64.zip](https://github.com/iStorry/callout/releases/latest/download/Callout-win-arm64.zip)
+| | Installer (recommended) | Portable |
+|---|---|---|
+| **Windows x64** (most gaming PCs) | [Callout-Setup-x64.exe](https://github.com/iStorry/callout/releases/latest/download/Callout-Setup-x64.exe) | [Callout-win-x64.zip](https://github.com/iStorry/callout/releases/latest/download/Callout-win-x64.zip) |
+| **Windows on ARM** | [Callout-Setup-arm64.exe](https://github.com/iStorry/callout/releases/latest/download/Callout-Setup-arm64.exe) | [Callout-win-arm64.zip](https://github.com/iStorry/callout/releases/latest/download/Callout-win-arm64.zip) |
 
-Unzip anywhere and run `Callout.exe`; nothing to install. All versions are on the [Releases page](https://github.com/iStorry/callout/releases). Builds are not code-signed yet, so Windows SmartScreen may warn on first launch: choose *More info → Run anyway*.
+- **Installer:** installs for your user only (no administrator prompt), adds a Start menu entry, and can be removed from *Settings → Apps*. Uninstalling also deletes the downloaded models.
+- **Portable:** unzip anywhere and run `Callout.exe`.
+
+All versions are on the [Releases page](https://github.com/iStorry/callout/releases). Builds are not code-signed yet, so Windows SmartScreen may warn on first launch: choose *More info → Run anyway*.
 
 > Callout is in **early access** (0.x). Expect rough edges, and please report what you find.
 
 ## How it works
 
 ```
-Valorant audio (per-app capture, or VB-Cable for voice only) ──► Callout ──► your headset (pass-through)
+Game audio (one app, a whole device, or VB-Cable for voice only) ──► Callout ──► your headset (pass-through for VB-Cable)
                                          │
                                          ├─ splits speech into lines (loudness, then Silero VAD)
                                          ├─ Whisper detects the language and translates it → English text (GPU via Vulkan)
@@ -31,7 +36,32 @@ Valorant audio (per-app capture, or VB-Cable for voice only) ──► Callout �
 - **Chat window** (default): a normal window with scrollback and timestamps. Put it on a second monitor, or pin it on top.
 - **Game overlay**: the last few lines float over the game and fade after 12 s. Clicks pass through when locked.
 
-Both are ordinary windows that never read or inject into the game, so they are safe with Vanguard.
+Both are ordinary windows. Callout never reads, injects into or hooks the game, so it doesn't interact with anti-cheat.
+
+## Setup
+
+**Pick what to listen to** under *Voice chat source*:
+
+| Source | Install? | Hears | Notes |
+|---|---|---|---|
+| **App: *your game*** | Nothing | Only that game | Start the game first, then press refresh (⟳) so it appears. Discord, music and browsers are left out. Windows 10 2004+. |
+| **App: Discord** (or another voice app) | Nothing | Only that app | Use this if your team talks over Discord rather than in-game chat. |
+| **Everything playing on *speakers*** | Nothing | All PC audio | The default. Simplest, but music and videos get translated too. |
+| **CABLE Output** | VB-Cable | Voice chat only | Best accuracy; see below. |
+
+None of the options except VB-Cable ask for microphone access.
+
+**Best accuracy (optional, about 2 minutes):** a game plays voice chat and gunfire from the same process, so per-app capture hears both. Most games let you send voice chat to a separate output device, which gives the translator voice only:
+
+1. Install **VB-Cable** (free): https://vb-audio.com/Cable/ and reboot.
+2. In your game's audio settings, set the **voice chat output device** to `CABLE Input`. In Valorant: *Settings → Audio → Voice Chat → Output Device*.
+3. In Callout, the source switches to `CABLE Output` automatically. Keep **Hear voice chat on** set to your headset so you still hear your team.
+
+Windows lists VB-Cable as a microphone, so it asks for microphone access in this mode. Your real mic is never used.
+
+**Overlay:** run the game in **windowed** or **borderless fullscreen** (exclusive fullscreen hides every overlay), choose **Game overlay**, untick **Lock overlay**, drag it into place, then lock it again.
+
+The first start downloads the chosen model (~540 MB for Balanced) to `%LocalAppData%\Callout\models`.
 
 ## Resource use
 
@@ -42,28 +72,12 @@ Both are ordinary windows that never read or inject into the game, so they are s
 - **Bounded memory:** if translation falls behind, stale lines are dropped. Chat history is capped at 300 lines. The non-concurrent GC means no background GC thread.
 - **Fast start:** ReadyToRun-compiled, so startup doesn't spend CPU on JIT.
 
-## Setup
-
-**Zero setup:** run `Callout.exe`, keep **Voice chat source = Valorant (game audio only)**, and press **Start listening** with the game running. Callout captures only Valorant's audio through Windows' per-app capture (Windows 10 2004+). There's no install, no microphone permission, and Discord or music are never picked up.
-
-**Best accuracy (optional, about 2 minutes):** Valorant plays voice chat and gunfire from the same process, so per-app capture hears both. To give the translator voice only:
-
-1. Install **VB-Cable** (free): https://vb-audio.com/Cable/ and reboot.
-2. In Valorant: **Settings → Audio → Voice Chat → Output Device = `CABLE Input`**.
-3. In Callout, the source switches to `CABLE Output` automatically. Keep **Hear voice chat on** set to your headset so you still hear your team.
-
-Windows lists VB-Cable as a microphone, so it asks for microphone access in this mode. Your real mic is never used.
-
-**Overlay:** set Valorant to **Windowed Fullscreen**, choose **Game overlay**, untick **Lock overlay**, drag it into place, then lock it again.
-
-The first start downloads the chosen model (~540 MB for Balanced) to `%LocalAppData%\Callout\models`.
-
 ## Requirements
 
-| Package | Runs on | Translation runs on |
+| Build | Runs on | Translation runs on |
 |---|---|---|
-| `Callout-win-x64.zip` | Windows 10/11 on Intel/AMD | GPU via Vulkan (NVIDIA, AMD or Intel; just the driver), CPU fallback |
-| `Callout-win-arm64.zip` | Windows 11 on ARM (Snapdragon) | CPU only: Whisper has no ARM GPU backend yet. Use the Fast quality setting. |
+| x64 | Windows 10/11 on Intel/AMD | GPU via Vulkan (NVIDIA, AMD or Intel; just the driver), CPU fallback |
+| ARM64 | Windows 11 on ARM (Snapdragon) | CPU only: Whisper has no ARM GPU backend yet. Use the Fast quality setting. |
 
 ## Build
 
@@ -75,17 +89,17 @@ dotnet test
 ./scripts/publish.sh
 ```
 
-This produces `artifacts/Callout-win-x64.zip` and `artifacts/Callout-win-arm64.zip`. Each is self-contained: unzip on the target PC and run `Callout.exe`.
+This produces the portable `artifacts/Callout-win-x64.zip` and `artifacts/Callout-win-arm64.zip`. The installers are built in CI with [Inno Setup](https://jrsoftware.org/isinfo.php) from [installer/Callout.iss](installer/Callout.iss), since that step needs Windows.
 
 ## Releasing
 
-Push a version tag. GitHub Actions tests, builds both architectures, and publishes the release with the zips attached:
+Push a version tag. GitHub Actions tests, builds both architectures, builds both installers, and publishes the release with all four files attached:
 
 ```bash
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-Versions below 1.0 are titled *early access*. Every push to `main` also runs the format check, build and tests ([CI](.github/workflows/ci.yml)).
+Versions below 1.0 are titled *early access*. To check a release build without publishing, run *Actions → Release → Run workflow*: the installers and zips are attached to that run as artifacts. Every push to `main` also runs the format check, build and tests ([CI](.github/workflows/ci.yml)).
 
 ## Tuning
 
@@ -97,8 +111,10 @@ Versions below 1.0 are titled *early access*. Every push to `main` also runs the
 
 ## Layout
 
-| Project | What |
+| Path | What |
 |---|---|
-| `src/Callout.Core` | Platform-free logic: speech segmentation, transcript cleanup, settings |
-| `src/Callout` | WPF app: audio capture (NAudio), Whisper.net translation, overlay |
+| `src/Callout.Core` | Platform-free logic: speech segmentation, transcript cleanup, audio sources, settings |
+| `src/Callout` | WPF app: audio capture (NAudio), Whisper.net translation, chat window and overlay |
 | `tests/Callout.Core.Tests` | Unit tests for the core |
+| `installer/Callout.iss` | Inno Setup installer script |
+| `scripts/publish.sh` | Builds the portable zips |
