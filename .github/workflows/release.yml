@@ -1,0 +1,42 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish a release with Windows x64 and ARM64 zips.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test -c Release
+
+      - name: Package
+        run: ./scripts/publish.sh "${GITHUB_REF_NAME#v}"
+
+      # Pre-1.0 releases are early access. They are still marked "latest" so the
+      # stable /releases/latest/download/<asset> links always serve the newest build.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Callout $GITHUB_REF_NAME"
+          if [[ "$GITHUB_REF_NAME" == v0.* ]]; then
+            title="$title (early access)"
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            artifacts/Callout-win-x64.zip \
+            artifacts/Callout-win-arm64.zip \
+            --title "$title" \
+            --generate-notes \
+            --latest

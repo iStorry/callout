@@ -1,0 +1,102 @@
+<Window x:ClassModifier="internal"
+        x:Class="Callout.Views.ChatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:app="clr-namespace:Callout"
+        xmlns:vm="clr-namespace:Callout.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:ChatViewModel}"
+        Style="{StaticResource AppWindow}"
+        Title="{x:Static app:AppInfo.Name}"
+        MinWidth="300"
+        MinHeight="240"
+        Left="{Binding Left, Mode=TwoWay}"
+        Top="{Binding Top, Mode=TwoWay}"
+        Width="{Binding Width, Mode=TwoWay}"
+        Height="{Binding Height, Mode=TwoWay}"
+        Topmost="{Binding AlwaysOnTop}"
+        ShowActivated="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Margin="16,10,10,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="Translations" />
+            <ToggleButton Grid.Column="1" Style="{StaticResource IconToggleButton}" ToolTip="Keep on top"
+                          IsChecked="{Binding AlwaysOnTop}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE718;" />
+            </ToggleButton>
+            <Button Grid.Column="2" Style="{StaticResource IconButton}" ToolTip="Clear" Command="{Binding ClearCommand}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE74D;" />
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="1" Margin="10,0,10,10" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource StrokeBrush}" BorderThickness="1" CornerRadius="10">
+            <Grid>
+                <ItemsControl ItemsSource="{Binding History}"
+                              ScrollViewer.ScrollChanged="OnScrollChanged"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <ScrollViewer CanContentScroll="True" Padding="4" VerticalScrollBarVisibility="Auto">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:TranscriptLine}">
+                            <Grid Margin="10,7">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Margin="0,2,10,0" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                           Text="{Binding ReceivedAt, StringFormat={}{0:HH:mm:ss}}" />
+                                <Border Grid.Column="1" Style="{StaticResource LanguageTag}">
+                                    <TextBlock Text="{Binding LanguageTag}" />
+                                </Border>
+                                <TextBlock Grid.Column="2" FontSize="15" TextWrapping="Wrap" Text="{Binding Text}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding History.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Image Source="{StaticResource LogoImage}" Width="36" Height="36" Opacity="0.5" />
+                    <TextBlock Margin="0,12,0,0" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"
+                               Text="Translations will appear here" />
+                    <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" Style="{StaticResource CaptionText}"
+                               Text="Press Start listening in the main window" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

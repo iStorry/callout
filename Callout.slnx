@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Callout.Core/Callout.Core.csproj" />
+    <Project Path="src/Callout/Callout.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Callout.Core.Tests/Callout.Core.Tests.csproj" />
+  </Folder>
+</Solution>
